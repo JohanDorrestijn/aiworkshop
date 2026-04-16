@@ -4,6 +4,11 @@
           sports           PROGRESS
 */
 &Scoped-define WINDOW-NAME C-Win
+
+/* Include business entity classes */
+USING business.ItemEntity FROM PROPATH.
+USING business.EntityFactory FROM PROPATH.
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /*------------------------------------------------------------------------
 
@@ -39,13 +44,16 @@ CREATE WIDGET-POOL.
 
 /* Local Variable Definitions ---                                       */
 
+/* Include dataset definitions */
+{business/ItemDataset.i}
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
 &ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
-/* ********************  Preprocessor Definitions  ******************** */
+/* ********************  Preprocessor Definitions ******************** */
 
 &Scoped-define PROCEDURE-TYPE Window
 &Scoped-define DB-AWARE no
@@ -218,15 +226,20 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL BUTTON-3 C-Win
 ON CHOOSE OF BUTTON-3 IN FRAME DEFAULT-FRAME /* Get Item */
 DO:
-  ASSIGN FILL-IN_ItemNum. 
-  FIND FIRST Item WHERE Item.ItemNum = INTEGER(FILL-IN_ItemNum) NO-LOCK NO-ERROR.
-  IF AVAILABLE Item THEN
-  DO:
-     FILL-IN_Price = Item.Price.
-     DISPLAY FILL-IN_Price WITH FRAME {&frame-name}.
+  VAR INTEGER iItemNumber = INTEGER(FILL-IN_ItemNum).
+  VAR business.EntityFactory objFactory = business.EntityFactory:GetInstance().
+  VAR business.ItemEntity objItemEntity = objFactory:GetItemEntity().
+  VAR LOGICAL lItemFound = objItemEntity:GetItemByNumber(iItemNumber, OUTPUT DATASET dsItem).
+  
+  IF lItemFound THEN DO:
+    FIND FIRST ttItem.
+    IF AVAILABLE ttItem THEN DO:
+      FILL-IN_Price = ttItem.Price.
+      DISPLAY FILL-IN_Price WITH FRAME {&frame-name}.
+    END.
   END.
-  ELSE
-     MESSAGE 'Item not found' VIEW-AS ALERT-BOX.
+  ELSE 
+    MESSAGE 'Item not found' VIEW-AS ALERT-BOX.
 
 END.
 
@@ -238,27 +251,31 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL BUTTON-4 C-Win
 ON CHOOSE OF BUTTON-4 IN FRAME DEFAULT-FRAME /* Save */
 DO:
-  VAR DECIMAL dTotal.
-  FIND FIRST Item WHERE Item.ItemNum = INTEGER(FILL-IN_ItemNum) EXCLUSIVE-LOCK NO-ERROR.
-  IF AVAILABLE Item THEN
-  DO:
-     ASSIGN FILL-IN_Price.
-     IF FILL-IN_Price = 0 THEN
-     DO:
-         MESSAGE 'Price cannot be empty' VIEW-AS ALERT-BOX.
-         RETURN NO-APPLY. 
-     END.
-     dTotal = Item.OnHand * FILL-IN_Price.
-     IF dTotal > 6000 THEN
-     DO:
-         MESSAGE 'Total value onhand will be ' dTotal 
-                 ', should not be larger than 6000' VIEW-AS ALERT-BOX.
-         RETURN NO-APPLY.
-     END.
-     Item.Price = FILL-IN_Price.    
+  VAR INTEGER iItemNumber = INTEGER(FILL-IN_ItemNum).
+  VAR business.EntityFactory objFactory = business.EntityFactory:GetInstance().
+  VAR business.ItemEntity objItemEntity = objFactory:GetItemEntity().
+  VAR LOGICAL lItemFound = objItemEntity:GetItemByNumber(iItemNumber, OUTPUT DATASET dsItem).
+  VAR CHARACTER errorMessage.
+  
+  IF lItemFound THEN DO:
+    FIND FIRST ttItem.
+    IF AVAILABLE ttItem THEN DO:
+      /* Update price in temp-table */
+      ttItem.Price = FILL-IN_Price.
+      
+      /* Validate the item data */
+      IF objItemEntity:ValidateItem(INPUT-OUTPUT DATASET dsItem, OUTPUT errorMessage) THEN DO:
+        /* Save the changes */
+        objItemEntity:UpdateItem(INPUT-OUTPUT DATASET dsItem).
+      END.
+      ELSE DO:
+        MESSAGE errorMessage VIEW-AS ALERT-BOX.
+        RETURN NO-APPLY.
+      END.
+    END.
   END.
-  ELSE
-     MESSAGE 'Item not found' VIEW-AS ALERT-BOX.
+  ELSE 
+    MESSAGE 'Item not found' VIEW-AS ALERT-BOX.
 
 END.
 
