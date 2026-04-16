@@ -1,0 +1,40 @@
+Sports2000 Database Schema Summary
+====================================
+
+This file contains a summary of the Sports2000 database schema defined in sports2000.df.
+
+Sequences
+---------
+- NextCustNum: Initial 1000, Increment 5
+- NextInvNum: Initial 1000, Increment 1  
+- NextOrdNum: Initial 1000, Increment 5
+- NextItemNum: Initial 100, Increment 10
+- NextRefNum: Initial 1, Increment 1
+- NextVisitor: Initial 1000, Increment 1
+- NextSupplNum: Initial 0, Increment 1
+- NextLocalDefNum: Initial 0, Increment 1
+- NextWareNum: Initial 0
+
+Key Tables (Summary)
+-------------------
+The full schema contains tables for:
+- Customer (customer information)
+- Item (product catalog)
+- Order (sales orders)
+- Invoice (billing)
+- Supplier (vendor information)
+- Warehouse (inventory locations)
+- Employee (staff records)
+- And many more supporting tables
+
+Note: For the complete schema definition, refer to the full sports2000.df file.
+This summary provides the sequence definitions and an overview of the database structure.
+
+Usage in Project
+----------------
+This database schema is used by the OpenEdge ABL project for:
+- Customer data management (CustomerEntity class)
+- Item/product management
+- Order processing
+- Business logic demonstrations
+- UI window examples (CustomerWin.w, ItemWin.w)
